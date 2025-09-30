@@ -1,0 +1,33 @@
+# .gcloudignore
+
+# --- Django Specific ---
+# Exclude the local SQLite database.
+db.sqlite3
+
+# --- Python Specific ---
+# Exclude the virtual environment folder.
+env/
+venv/
+
+# Exclude Python bytecode and cache.
+__pycache__/
+*.pyc
+
+# --- General ---
+# Exclude the Git version control folder.
+.git/
+
+# Exclude local settings for code editors.
+.vscode/
+.idea/
+
+# Exclude local environment variable files containing secrets.
+.env
+
+# Exclude the ignore files themselves.
+.gcloudignore
+.gitignore
+
+# Exclude OS-specific files.
+.DS_Store
+Thumbs.db

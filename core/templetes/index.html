@@ -1,0 +1,314 @@
+<!DOCTYPE html>
+{% load static %}
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>DLP - Image Classifier</title>
+
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@500;700&display=swap" rel="stylesheet" />
+
+  <style>
+    /* Base and body */
+    body, html {
+      margin: 0; padding: 0; height: 100%;
+      font-family: 'Inter', sans-serif;
+      overflow-x: hidden;
+      /* Animated gradient background */
+      background: linear-gradient(-45deg, #1a2a6c, #b21f1f, #fdbb2d, #22c1c3);
+      background-size: 400% 400%;
+      animation: gradientBG 15s ease infinite;
+      color: #333;
+    }
+
+    @keyframes gradientBG {
+      0% {background-position:0% 50%}
+      50% {background-position:100% 50%}
+      100% {background-position:0% 50%}
+    }
+
+    /* Container for form and results */
+    .container {
+      max-width: 600px;
+      margin: 4rem auto;
+      padding: 2rem;
+      background: rgba(255 255 255 / 0.85);
+      border-radius: 15px;
+      box-shadow: 0 12px 25px rgba(0,0,0,0.2);
+      text-align: center;
+      position: relative;
+      z-index: 10;
+      animation: fadeIn 1s ease-in-out;
+    }
+
+    h1 {
+      margin-bottom: 1.5rem;
+      font-size: 2rem;
+      color: #007BFF;
+      user-select: none;
+      text-shadow: 0 1px 3px rgba(0,0,0,0.2);
+    }
+
+    form.upload-form {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 1rem;
+    }
+
+    input[type="file"] {
+      border: 2px dashed #007BFF;
+      border-radius: 10px;
+      padding: 1rem;
+      background: #f5fbff;
+      cursor: pointer;
+      transition: 0.3s;
+      width: 100%;
+      font-size: 1rem;
+    }
+
+    input[type="file"]:hover {
+      background: #e0f0ff;
+    }
+
+    button {
+      background: #007BFF;
+      color: white;
+      border: none;
+      padding: 0.7rem 1.5rem;
+      font-size: 1rem;
+      border-radius: 30px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: background 0.3s ease;
+      box-shadow: 0 3px 8px rgba(0,123,255,0.4);
+    }
+
+    button:hover {
+      background: #0056b3;
+    }
+
+    .image-preview {
+      margin-top: 2rem;
+    }
+
+    .image-preview img {
+      max-width: 100%;
+      height: auto;
+      border-radius: 10px;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.25);
+      user-select: none;
+    }
+
+    /* Verdict styling */
+    .verdict-box {
+      margin-top: 2rem;
+      padding: 1rem;
+      border-radius: 12px;
+      font-size: 1.2rem;
+      font-weight: 700;
+      user-select: none;
+      box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+      color: white;
+      display: inline-block;
+      min-width: 300px;
+    }
+
+    /* Children of the verdict box for better structure */
+    .verdict-box #verdict-title {
+        font-size: 1.3rem;
+        margin: 0 0 0.5rem 0;
+    }
+    .verdict-box #verdict-detail {
+        font-size: 1rem;
+        font-weight: 500;
+    }
+
+
+    .verdict-safe {
+      background-color: #28a745; /* green */
+      border: 2px solid #218838;
+      text-shadow: 0 1px 2px rgba(0,0,0,0.25);
+    }
+
+    .verdict-danger {
+      background-color: #ff6600; /* orange */
+      border: 2px solid #cc5200;
+      text-shadow: 0 1px 2px rgba(0,0,0,0.25);
+    }
+
+    /* Error box */
+    .error {
+      margin-top: 2rem;
+      padding: 1rem;
+      background: #fff0f0;
+      color: #d8000c;
+      border: 1px dashed #d8000c;
+      border-radius: 8px;
+      font-weight: bold;
+      user-select: none;
+    }
+
+    /* Fade in animation */
+    @keyframes fadeIn {
+      from {opacity: 0; transform: translateY(20px);}
+      to {opacity: 1; transform: translateY(0);}
+    }
+
+    /* Loader overlay styles */
+    #loader-overlay {
+      position: fixed;
+      top: 0; left: 0; right: 0; bottom: 0;
+      background: rgba(0, 123, 255, 0.85);
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+      color: white;
+      font-weight: 600;
+      font-size: 1.4rem;
+      text-align: center;
+      z-index: 1000;
+      transition: opacity 0.5s ease;
+      opacity: 0;
+      pointer-events: none;
+      padding: 1rem;
+    }
+    #loader-overlay.active {
+      opacity: 1;
+      pointer-events: all;
+    }
+
+    /* Spinning loader circles */
+    .loader {
+      margin-bottom: 2rem;
+      width: 80px;
+      height: 80px;
+      position: relative;
+    }
+    .loader div {
+      box-sizing: border-box;
+      display: block;
+      position: absolute;
+      width: 64px;
+      height: 64px;
+      margin: 8px;
+      border: 8px solid white;
+      border-radius: 50%;
+      animation: loader-spin 1.2s cubic-bezier(0.5,0,0.5,1) infinite;
+      border-color: white transparent transparent transparent;
+    }
+    .loader div:nth-child(1) { animation-delay: -0.45s; }
+    .loader div:nth-child(2) { animation-delay: -0.3s; }
+    .loader div:nth-child(3) { animation-delay: -0.15s; }
+
+    @keyframes loader-spin {
+      0% { transform: rotate(0deg);}
+      100% { transform: rotate(360deg);}
+    }
+
+    #loader-message {
+      max-width: 360px;
+      font-size: 1.6rem;
+      line-height: 1.2;
+      user-select: none;
+    }
+
+  </style>
+</head>
+<body>
+
+  <div id="loader-overlay" aria-live="polite" role="alert" aria-busy="true" aria-label="Loading result">
+    <div class="loader" aria-hidden="true">
+      <div></div><div></div><div></div><div></div>
+    </div>
+    <div id="loader-message">
+      <p>🔍 Analyzing image carefully...</p>
+      <p>Detecting flowcharts & business plans in The image</p>
+    </div>
+  </div>
+
+  <div class="container" id="main-container">
+
+    <h1>🔐 DLP - Image Classifier</h1>
+
+    <form method="POST" enctype="multipart/form-data" class="upload-form" id="upload-form" novalidate>
+      {% csrf_token %}
+      <input type="file" accept="image/*" name="image" required id="image-input" />
+      <button type="submit">🔍 Detect</button>
+    </form>
+
+    {% if image_url %}
+      <div class="image-preview" id="image-preview">
+        <img src="{{ image_url }}" alt="Uploaded Image" />
+      </div>
+    {% endif %}
+
+    {% if verdict %}
+      <div id="verdict-box" class="verdict-box">
+        <p id="verdict-title"></p> <p id="verdict-detail">{{ verdict }}</p> </div>
+    {% endif %}
+
+    {% if error %}
+      <div class="error" id="error-box">
+        ⚠️ {{ error }}
+      </div>
+    {% endif %}
+
+  </div>
+
+  <script>
+    const form = document.getElementById('upload-form');
+    const loader = document.getElementById('loader-overlay');
+    const verdictBox = document.getElementById('verdict-box');
+    const errorBox = document.getElementById('error-box');
+
+    // Show loader on submit
+    form.addEventListener('submit', (e) => {
+      // Basic validation: check if a file is selected
+      const imageInput = document.getElementById('image-input');
+      if (!imageInput.files || imageInput.files.length === 0) {
+        e.preventDefault(); // Stop form submission
+        alert("Please select an image file first!");
+        return;
+      }
+      
+      loader.classList.add('active');
+
+      // Hide verdict/error while loading
+      if (verdictBox) verdictBox.style.display = 'none';
+      if (errorBox) errorBox.style.display = 'none';
+
+      // Allow form to submit normally (page reload)
+    });
+
+    // On DOM loaded, color verdict box based on classification
+    window.addEventListener('DOMContentLoaded', () => {
+      if (verdictBox) {
+        // These are the elements inside the verdict box
+        const verdictTitle = document.getElementById('verdict-title');
+        const verdictDetail = document.getElementById('verdict-detail');
+
+        // CORRECT: Safely pass the Django variable into a JavaScript variable
+        const classification = '{{ classification }}';
+
+        // CORRECT: Use the JavaScript variable for comparison
+        if (classification === 'pos') {
+          verdictBox.classList.add('verdict-danger'); // orange
+          verdictTitle.innerText = "⚠️ Image Contains Confidential Data";
+        } else if (classification === 'neg') {
+          verdictBox.classList.add('verdict-safe'); // green
+          verdictTitle.innerText = "💁 Safe Image";
+        }
+
+        console.log('DEBUG: Classification:', classification, 'Verdict:', verdictDetail.textContent.trim());
+      }
+
+      if (errorBox) {
+        console.error('DEBUG: Error:', errorBox.textContent.trim());
+      }
+    });
+  </script>
+
+</body>
+</html>
